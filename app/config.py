@@ -11,8 +11,9 @@ class Settings(BaseSettings):
     DB_NAME: str = Field(default="webhook_db")
 
     # JWT
-    JWT_SECRET: str = Field(default="")
+    JWT_SECRET: str = Field(..., min_length=1)
     JWT_ALGORITHM: str = Field(default="HS256")
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = Field(..., gt=0)
 
     # App
     APP_ENV: str = Field(default="development")
