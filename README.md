@@ -27,3 +27,36 @@ A webhook delivery system built with Python, FastAPI, and MySQL. It allows users
    ```
 
 4. The API will be available at [http://localhost:8000](http://localhost:8000).
+
+## Verifying Webhook HMAC Signatures
+
+If a webhook has a secret configured, deliveries include:
+
+- `X-Hub-Signature-256: sha256=<hex_digest>`
+
+The sender computes this with HMAC-SHA256 over the exact raw JSON request body bytes.
+
+Receiver-side verification flow:
+
+1. Read the raw request body exactly as received.
+2. Read `X-Hub-Signature-256` and extract the digest part after `sha256=`.
+3. Recompute HMAC-SHA256 over the raw body using the shared secret.
+4. Compare the received and recomputed digests using `hmac.compare_digest`.
+
+Example (Python):
+
+```python
+import hashlib
+import hmac
+
+def verify_signature(raw_body: bytes, header_value: str, secret: str) -> bool:
+    prefix = "sha256="
+    if not header_value or not header_value.startswith(prefix):
+        return False
+
+    received = header_value[len(prefix):]
+    expected = hmac.new(secret.encode("utf-8"), raw_body, hashlib.sha256).hexdigest()
+    return hmac.compare_digest(received, expected)
+```
+
+Use constant-time comparison (`hmac.compare_digest`) to reduce timing-attack risk. A normal `==` comparison can leak information about matching prefix length via response timing.

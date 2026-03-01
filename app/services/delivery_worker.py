@@ -1,4 +1,5 @@
 import asyncio
+import json
 import logging
 import random
 import uuid
@@ -15,6 +16,7 @@ from app.db.session import async_session
 from app.models.delivery import Delivery, DeliveryStatus
 from app.models.delivery_attempt import DeliveryAttempt
 from app.models.webhook import Webhook
+from app.services.signature import generate_hmac_sha256_signature
 
 logger = logging.getLogger("delivery_worker")
 
@@ -60,7 +62,7 @@ async def process_one_pending_delivery(
 ) -> bool:
     async with async_session() as session:
         async with session.begin():
-            delivery, webhook_url = await _lock_next_delivery(session=session)
+            delivery, webhook_url, webhook_secret = await _lock_next_delivery(session=session)
             if delivery is None or webhook_url is None:
                 return False
 
@@ -69,6 +71,7 @@ async def process_one_pending_delivery(
                 client=client,
                 webhook_url=webhook_url,
                 payload=delivery.payload,
+                webhook_secret=webhook_secret,
                 success_statuses=success_statuses,
             )
 
@@ -104,9 +107,9 @@ async def process_one_pending_delivery(
             return True
 
 
-async def _lock_next_delivery(session: AsyncSession) -> tuple[Delivery | None, str | None]:
-    statement: Select[tuple[Delivery, str]] = (
-        select(Delivery, Webhook.url)
+async def _lock_next_delivery(session: AsyncSession) -> tuple[Delivery | None, str | None, str | None]:
+    statement: Select[tuple[Delivery, str, str | None]] = (
+        select(Delivery, Webhook.url, Webhook.secret)
         .join(Webhook, Webhook.id == Delivery.webhook_id)
         .where(
             Delivery.status == DeliveryStatus.PENDING,
@@ -119,8 +122,8 @@ async def _lock_next_delivery(session: AsyncSession) -> tuple[Delivery | None, s
     result = await session.execute(statement)
     row = result.first()
     if row is None:
-        return None, None
-    return row[0], row[1]
+        return None, None, None
+    return row[0], row[1], row[2]
 
 
 async def _next_attempt_number(session: AsyncSession, delivery_id: str) -> int:
@@ -135,13 +138,20 @@ async def _perform_http_attempt(
     client: httpx.AsyncClient,
     webhook_url: str,
     payload: dict[str, Any],
+    webhook_secret: str | None,
     success_statuses: set[int],
 ) -> AttemptResult:
+    raw_payload = json.dumps(payload)
+    headers = {"Content-Type": "application/json"}
+    if webhook_secret:
+        signature = generate_hmac_sha256_signature(raw_payload=raw_payload, secret=webhook_secret)
+        headers["X-Hub-Signature-256"] = f"sha256={signature}"
+
     try:
         response = await client.post(
             webhook_url,
-            json=payload,
-            headers={"Content-Type": "application/json"},
+            content=raw_payload,
+            headers=headers,
         )
         body = response.text if response.text else None
         return AttemptResult(
