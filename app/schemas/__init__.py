@@ -1,4 +1,5 @@
 from app.schemas.auth import LoginRequest, RegisterRequest, TokenResponse, UserResponse
+from app.schemas.event import EventIngestRequest, EventIngestResponse
 from app.schemas.webhook import (
     WebhookCreateRequest,
     WebhookCreateResponse,
@@ -15,4 +16,6 @@ __all__ = [
     "WebhookCreateResponse",
     "WebhookResponse",
     "WebhookUpdateRequest",
+    "EventIngestRequest",
+    "EventIngestResponse",
 ]

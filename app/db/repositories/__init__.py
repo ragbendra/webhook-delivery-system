@@ -1,3 +1,4 @@
+from app.db.repositories.delivery_repository import create_pending_deliveries_for_event
 from app.db.repositories.user_repository import create_user, get_user_by_email, get_user_by_id
 from app.db.repositories.webhook_repository import (
     create_webhook,
@@ -9,6 +10,7 @@ from app.db.repositories.webhook_repository import (
 
 __all__ = [
     "create_user",
+    "create_pending_deliveries_for_event",
     "get_user_by_email",
     "get_user_by_id",
     "create_webhook",
