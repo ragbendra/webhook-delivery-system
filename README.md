@@ -2,6 +2,21 @@
 
 A webhook delivery system built with Python, FastAPI, and MySQL. It allows users to register webhook URLs, manage subscriptions, and reliably deliver event payloads to registered endpoints with retry support.
 
+For details regarding project architecture, specific system boundaries, and full transparency on our use of AI tools like Codex CLI, please refer to the [System Architecture and Transparency Documentation](docs/PART2_PART3_README_AND_TRANSPARENCY.md).
+
+## Features
+
+- **JWT-Based Authentication**: Endpoints for secure user registration, login, and identity retrieval.
+- **Webhook Management**: Complete CRUD functionality for user-owned webhooks.
+- **Reliable Event Ingestion**: Dedicated endpoint supporting ingestion and queueing of asynchronous delivery jobs.
+- **Robust Delivery Worker**:
+  - Database polling using `SELECT FOR UPDATE SKIP LOCKED` for concurrent safety.
+  - Outbound HTTP POST delivery attempts.
+  - Exponential backoff with jitter for retries.
+  - Permanent failure tracking after max attempts are reached.
+- **Payload Security**: Automatic HMAC-SHA256 cryptographic signing of requests equipped with user-defined secrets.
+- **Delivery Observability**: Endpoints providing full webhook delivery history and trace details.
+
 ## Tech Stack
 
 - **Backend:** FastAPI (Python 3.11)
