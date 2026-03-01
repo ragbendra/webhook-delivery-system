@@ -13,6 +13,19 @@ services:
     networks:
       - webhook-network
 
+  worker:
+    build: .
+    command: ["python", "worker.py"]
+    env_file:
+      - .env
+    volumes:
+      - .:/app
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - webhook-network
+
   db:
     image: mysql:8.0
     ports:
