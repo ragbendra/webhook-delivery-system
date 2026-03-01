@@ -1,5 +1,6 @@
 from app.api.routes.auth import router as auth_router
+from app.api.routes.deliveries import router as deliveries_router
 from app.api.routes.events import router as events_router
 from app.api.routes.webhooks import router as webhooks_router
 
-__all__ = ["auth_router", "webhooks_router", "events_router"]
+__all__ = ["auth_router", "webhooks_router", "events_router", "deliveries_router"]
